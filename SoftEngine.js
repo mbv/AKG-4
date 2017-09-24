@@ -37,14 +37,16 @@ var SoftEngine;
         Device.prototype.present = function () {
             this.workingContext.putImageData(this.backbuffer, 0, 0);
         };
-        Device.prototype.putPixel = function (x, y, z, color) {
+        Device.prototype.putPixel = function (x, y, z, color, forceDraw) {
             this.backbufferdata = this.backbuffer.data;
             var index = ((x >> 0) + (y >> 0) * this.workingWidth);
             var index4 = index * 4;
-            if(this.depthbuffer[index] < z) {
+            if(!forceDraw && this.depthbuffer[index] < z) {
               return;
             }
-            this.depthbuffer[index] = z;
+            //if(this.depthbuffer[index] >= z) {
+           //     this.depthbuffer[index] = z;
+           //}
             this.backbufferdata[index4] = color.r * 255;
             this.backbufferdata[index4 + 1] = color.g * 255;
             this.backbufferdata[index4 + 2] = color.b * 255;
@@ -53,24 +55,30 @@ var SoftEngine;
 
         Device.prototype.project = function (coord, transMat) {
             var point = HELPER.Vector3.TransformCoordinates(coord, transMat);
-            var x = point.x * this.workingWidth + this.workingWidth / 2.0 >> 0;
-            var y = -point.y * this.workingHeight + this.workingHeight / 2.0 >> 0;
-            return (new HELPER.Vector2(x, y));
+            var x = point.x * this.workingWidth + this.workingWidth / 2.0;
+            var y = -point.y * this.workingHeight + this.workingHeight / 2.0;
+            return (new HELPER.Vector3(x, y, point.z));
         };
-        Device.prototype.drawPoint = function (point, color) {
+        Device.prototype.drawPoint = function (point, color, forceDraw) {
             if(point.x >= 0 && point.y >= 0 && point.x < this.workingWidth && point.y < this.workingHeight) {
-                this.putPixel(point.x, point.y, point.z, color);
+                this.putPixel(point.x, point.y, point.z, color, forceDraw);
             }
         };
 
-        Device.prototype.dephPoint = function (point) {
+        Device.prototype.dephPoint = function (point, color) {
             if(point.x >= 0 && point.y >= 0 && point.x < this.workingWidth && point.y < this.workingHeight) {
+                this.backbufferdata = this.backbuffer.data;
                 var index = ((point.x >> 0) + (point.y >> 0) * this.workingWidth);
                 var index4 = index * 4;
                 if(this.depthbuffer[index] < point.z) {
-                    return;
+                  return;
                 }
                 this.depthbuffer[index] = point.z;
+
+                this.backbufferdata[index4] = color.r * 255;
+                this.backbufferdata[index4 + 1] = color.g * 255;
+                this.backbufferdata[index4 + 2] = color.b * 255;
+                this.backbufferdata[index4 + 3] = color.a * 255;
             }
         };
 
@@ -81,19 +89,6 @@ var SoftEngine;
         };
         Device.prototype.interpolate = function (min, max, gradient) {
             return min + (max - min) * this.clamp(gradient);
-        };
-        Device.prototype.processScanLine1 = function (y, pa, pb, pc, pd) {
-            var gradient1 = pa.y != pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
-            var gradient2 = pc.y != pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
-            var sx = this.interpolate(pa.x, pb.x, gradient1) >> 0;
-            var ex = this.interpolate(pc.x, pd.x, gradient2) >> 0;
-            var z1 = this.interpolate(pa.z, pb.z, gradient1);
-            var z2 = this.interpolate(pc.z, pd.z, gradient2);
-            for(var x = sx; x < ex; x++) {
-                var gradient = (x - sx) / (ex - sx);
-                var z = this.interpolate(z1, z2, gradient);
-                this.dephPoint(new HELPER.Vector3(x, y, z));
-            }
         };
 
         Device.prototype.processScanLine = function (y, pa, pb, pc, pd, color) {
@@ -106,7 +101,7 @@ var SoftEngine;
             for(var x = sx; x < ex; x++) {
                 var gradient = (x - sx) / (ex - sx);
                 var z = this.interpolate(z1, z2, gradient);
-                this.drawPoint(new HELPER.Vector3(x, y, z), color);
+                this.dephPoint(new HELPER.Vector3(x, y, z), color);
             }
         };
 
@@ -157,61 +152,29 @@ var SoftEngine;
             }
         };
 
-        Device.prototype.dephRect = function (vertexA, vertexB, vertexC, vertexD) {
-            if(vertexA.y > vertexB.y) {
-                var temp = vertexB;
-                vertexB = vertexA;
-                vertexA = temp;
-            }
-            if(vertexB.y > vertexC.y) {
-                var temp = vertexC;
-                vertexC = vertexB;
-                vertexB = temp;
-            }
-            if(vertexC.y > vertexD.y) {
-                var temp = vertexD;
-                vertexD = vertexC;
-                vertexC = temp;
-            }
-            if(vertexB.y > vertexC.y) {
-                var temp = vertexC;
-                vertexC = vertexB;
-                vertexB = temp;
-            }
-            if(vertexA.y > vertexB.y) {
-                var temp = vertexB;
-                vertexB = vertexA;
-                vertexA = temp;
-            }
-
-            if (Math.abs(vertexA.x - vertexC.x) > Math.abs(vertexA.x - vertexD.x)) {
-                var temp = vertexD;
-                vertexD = vertexC;
-                vertexC = temp;
-            }
-            maxY = Math.max(vertexC.y, vertexD.y);
-
-            for(var y = vertexA.y >> 0; y <= maxY >> 0; y++) {
-                this.processScanLine(y, vertexA, vertexC, vertexB, vertexD);
-            }
-
-
-        }
-
 
 
         Device.prototype.drawBline = function (point0, point1, color) {
             var x0 = point0.x >> 0;
             var y0 = point0.y >> 0;
+            var z0 = point0.z;
             var x1 = point1.x >> 0;
             var y1 = point1.y >> 0;
+            var z1 = point1.z;
             var dx = Math.abs(x1 - x0);
             var dy = Math.abs(y1 - y0);
             var sx = (x0 < x1) ? 1 : -1;
             var sy = (y0 < y1) ? 1 : -1;
             var err = dx - dy;
+            var zCh = Math.abs(z1 - z0)/Math.sqrt(dx*dx + dy*dy);
+            var sz = (z0 < z1) ? 1 : -1;
+            var n = 0;
             while(true) {
-                this.drawPoint(new HELPER.Vector3(x0, y0, -10), color);
+                var dzx = Math.abs((point0.x >> 0) - x0);
+                var dzy = Math.abs((point0.y >> 0) - y0);
+                z = z0 + sz * zCh * Math.sqrt(dzx*dzx + dzy*dzy);
+                this.drawPoint(new HELPER.Vector3(x0, y0, z), color, ((n % 20) > 10));
+                n++;
                 if((x0 == x1) && (y0 == y1)) {
                     break;
                 }
@@ -243,21 +206,28 @@ var SoftEngine;
                     var pixelB = this.project(vertexB, transformMatrix);
                     var pixelC = this.project(vertexC, transformMatrix);
                     var pixelD = this.project(vertexD, transformMatrix);
-                    //this.dephRect(vertexA, vertexB, vertexC, vertexD);
 
-                    // this.drawBline(pixelA, pixelB, new HELPER.Color4(1, 1, 0, 1));
-                    // this.drawBline(pixelB, pixelC, new HELPER.Color4(1, 1, 0, 1));
-                    // this.drawBline(pixelC, pixelD, new HELPER.Color4(1, 1, 0, 1));
-                    // this.drawBline(pixelD, pixelA, new HELPER.Color4(1, 1, 0, 1));
+                    var kForColor = (indexFaces / 6) >> 0;
+                    var color = 0.15 + ((indexFaces / 6) % cMesh.Faces.length) * 0.25;
+                     if (kForColor == 0) {
+                        var colorRGBA = new HELPER.Color4(1, 1, color, 1)
+                     } else if (kForColor == 1) {
+                        var colorRGBA = new HELPER.Color4(1, color, 1, 1)
+                     } else {
+                        var colorRGBA = new HELPER.Color4(color, 1, 1, 1)
+                     }
 
-                    // var color = 0.25 + ((indexFaces % cMesh.Faces.length) / cMesh.Faces.length) * 0.75;
-                    // this.drawTriangle(pixelA, pixelB, pixelC, new HELPER.Color4(color, color, color, 1));
-                    // this.drawTriangle(pixelC, pixelD, pixelA, new HELPER.Color4(color, color, color, 1));  
+                     
+                    //this.dephRect(vertexA, pixelA, vertexB, pixelB, vertexC, pixelC, vertexD, pixelD, colorRGBA);
+                    this.drawTriangle(pixelA, pixelB, pixelC, colorRGBA);  
+                    this.drawTriangle(pixelC, pixelD, pixelA, colorRGBA);  
 
-                    this.drawBline(pixelA, pixelB, new HELPER.Color4(1, 1, 0, 1));
-                    this.drawBline(pixelB, pixelC, new HELPER.Color4(1, 1, 0, 1));
-                    this.drawBline(pixelC, pixelD, new HELPER.Color4(1, 1, 0, 1));
-                    this.drawBline(pixelD, pixelA, new HELPER.Color4(1, 1, 0, 1));                 
+                    colorRGBA = new HELPER.Color4(1, 1, 1, 1);
+
+                    this.drawBline(pixelA, pixelB, colorRGBA);
+                    this.drawBline(pixelB, pixelC, colorRGBA);
+                    this.drawBline(pixelC, pixelD, colorRGBA);
+                    this.drawBline(pixelD, pixelA, colorRGBA);                 
                 }
             }
         };

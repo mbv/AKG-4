@@ -12,6 +12,7 @@ var device;
 var mesh;
 var meshes = [];
 var mera;
+var cubeA = 10;
 document.addEventListener("DOMContentLoaded", init, false);
 function init() {
     canvas = document.getElementById("frontBuffer");
@@ -20,24 +21,24 @@ function init() {
     mesh = new SoftEngine.Mesh("Cube", 19, 18);
     meshes.push(mesh);
     mesh.Vertices[0] = new HELPER.Vector3(0, 0, 0);
-    mesh.Vertices[1] = new HELPER.Vector3(1, 0, 0);
-    mesh.Vertices[2] = new HELPER.Vector3(1, -1, 0);
-    mesh.Vertices[3] = new HELPER.Vector3(0, -1, 0);
-    mesh.Vertices[4] = new HELPER.Vector3(0, 0, -1);
-    mesh.Vertices[5] = new HELPER.Vector3(1, 0, -1);
-    mesh.Vertices[6] = new HELPER.Vector3(1, -1, -1);
-    mesh.Vertices[7] = new HELPER.Vector3(0, -1, -1);
-    mesh.Vertices[8] = new HELPER.Vector3(0, 0, 1);
-    mesh.Vertices[9] = new HELPER.Vector3(0, -1, 1);
-    mesh.Vertices[10] = new HELPER.Vector3(-1, -1, 1);
-    mesh.Vertices[11] = new HELPER.Vector3(-1, 0, 1);
-    mesh.Vertices[12] = new HELPER.Vector3(-1, 0, 0);
-    mesh.Vertices[13] = new HELPER.Vector3(-1, -1, 0);
-    mesh.Vertices[14] = new HELPER.Vector3(-1, 1, 0);
-    mesh.Vertices[15] = new HELPER.Vector3(0, 1, 0);
-    mesh.Vertices[16] = new HELPER.Vector3(-1, 0, -1);
-    mesh.Vertices[17] = new HELPER.Vector3(-1, 1, -1);
-    mesh.Vertices[18] = new HELPER.Vector3(0, 1, -1);
+    mesh.Vertices[1] = new HELPER.Vector3(cubeA, 0, 0);
+    mesh.Vertices[2] = new HELPER.Vector3(cubeA, -cubeA, 0);
+    mesh.Vertices[3] = new HELPER.Vector3(0, -cubeA, 0);
+    mesh.Vertices[4] = new HELPER.Vector3(0, 0, -cubeA);
+    mesh.Vertices[5] = new HELPER.Vector3(cubeA, 0, -cubeA);
+    mesh.Vertices[6] = new HELPER.Vector3(cubeA, -cubeA, -cubeA);
+    mesh.Vertices[7] = new HELPER.Vector3(0, -cubeA, -cubeA);
+    mesh.Vertices[8] = new HELPER.Vector3(0, 0, cubeA);
+    mesh.Vertices[9] = new HELPER.Vector3(0, -cubeA, cubeA);
+    mesh.Vertices[10] = new HELPER.Vector3(-cubeA, -cubeA, cubeA);
+    mesh.Vertices[11] = new HELPER.Vector3(-cubeA, 0, cubeA);
+    mesh.Vertices[12] = new HELPER.Vector3(-cubeA, 0, 0);
+    mesh.Vertices[13] = new HELPER.Vector3(-cubeA, -cubeA, 0);
+    mesh.Vertices[14] = new HELPER.Vector3(-cubeA, cubeA, 0);
+    mesh.Vertices[15] = new HELPER.Vector3(0, cubeA, 0);
+    mesh.Vertices[16] = new HELPER.Vector3(-cubeA, 0, -cubeA);
+    mesh.Vertices[17] = new HELPER.Vector3(-cubeA, cubeA, -cubeA);
+    mesh.Vertices[18] = new HELPER.Vector3(0, cubeA, -cubeA);
 
     mesh.Faces[0] = {
         A: 0,
@@ -150,21 +151,40 @@ function init() {
     };
     mesh.Faces[17] = {
         A: 17,
-        B: 18,
+        B: 18,  
         C: 4,
         D: 16
     };
 
-    mera.Position = new HELPER.Vector3(10, 10, 10);
+    mera.Position = new HELPER.Vector3(10, 90, 0);
     mera.Target = new HELPER.Vector3(0, 0, 0);
     requestAnimationFrame(drawingLoop);
+    drawingLoop();
+
+    document.getElementById("rangeX").addEventListener("input", function (event) {
+        mesh.Rotation.x = document.getElementById("rangeX").value / 100;
+        draw();
+    });
+    document.getElementById("rangeY").addEventListener("input", function (event) {
+        mesh.Rotation.y = document.getElementById("rangeY").value / 100;
+        draw();
+    });
+    document.getElementById("rangeZ").addEventListener("input", function (event) {
+        mesh.Rotation.z = document.getElementById("rangeZ").value / 100;
+        draw();
+    });
 }
 function drawingLoop() {
     device.clear();
-    //mesh.Rotation.z += 0.01;
-    mesh.Rotation.y += 0.01;
-    //mesh.Rotation.x += 0.01;
+    //  mesh.Rotation.z += 0.01;
+  // mesh.Rotation.y += 0.01;
+   // mesh.Rotation.x += 0.01;
     device.render(mera, meshes);
     device.present();
-    requestAnimationFrame(drawingLoop);
+    //requestAnimationFrame(drawingLoop);
+}
+function draw() {
+    device.clear();
+    device.render(mera, meshes);
+    device.present();
 }
