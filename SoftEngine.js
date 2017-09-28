@@ -13,7 +13,7 @@ var SoftEngine;
             this.name = name;
             this.Vertices = new Array(verticesCount);
             this.Faces = new Array(facesCount);
-            this.Rotation = new HELPER.Vector3(0, 0, 0);
+            this.Rotation = new HELPER.Vector3(0.001, 0.001, 0.001);
             this.Position = new HELPER.Vector3(0, 0, 0);
         }
         return Mesh;
@@ -53,10 +53,11 @@ var SoftEngine;
             this.backbufferdata[index4 + 3] = color.a * 255;
         };
 
-        Device.prototype.project = function (coord, transMat) {
+        Device.prototype.project = function (coord, transMat, camera) {
             var point = HELPER.Vector3.TransformCoordinates(coord, transMat);
             var x = point.x * this.workingWidth + this.workingWidth / 2.0;
             var y = -point.y * this.workingHeight + this.workingHeight / 2.0;
+            var z = Math.sqrt(Math.pow(coord.x - camera.Position.x, 2) + Math.pow(coord.y - camera.Position.y, 2) + Math.pow(coord.z - camera.Position.z, 2));
             return (new HELPER.Vector3(x, y, point.z));
         };
         Device.prototype.drawPoint = function (point, color, forceDraw) {
@@ -173,7 +174,7 @@ var SoftEngine;
                 var dzx = Math.abs((point0.x >> 0) - x0);
                 var dzy = Math.abs((point0.y >> 0) - y0);
                 z = z0 + sz * zCh * Math.sqrt(dzx*dzx + dzy*dzy);
-                this.drawPoint(new HELPER.Vector3(x0, y0, z), color, ((n % 20) > 10));
+                this.drawPoint(new HELPER.Vector3(x0, y0, z-0.000000001), color, ((n % 20) > 10));
                 n++;
                 if((x0 == x1) && (y0 == y1)) {
                     break;
@@ -202,13 +203,13 @@ var SoftEngine;
                     var vertexB = cMesh.Vertices[currentFace.B];
                     var vertexC = cMesh.Vertices[currentFace.C];
                     var vertexD = cMesh.Vertices[currentFace.D];
-                    var pixelA = this.project(vertexA, transformMatrix);
-                    var pixelB = this.project(vertexB, transformMatrix);
-                    var pixelC = this.project(vertexC, transformMatrix);
-                    var pixelD = this.project(vertexD, transformMatrix);
+                    var pixelA = this.project(vertexA, transformMatrix, camera);
+                    var pixelB = this.project(vertexB, transformMatrix, camera);
+                    var pixelC = this.project(vertexC, transformMatrix, camera);
+                    var pixelD = this.project(vertexD, transformMatrix, camera);
 
                     var kForColor = (indexFaces / 6) >> 0;
-                    var color = 0.15 + ((indexFaces / 6) % cMesh.Faces.length) * 0.25;
+                    var color = 0.05 + ((indexFaces / 6) % cMesh.Faces.length) * 0.35;
                      if (kForColor == 0) {
                         var colorRGBA = new HELPER.Color4(1, 1, color, 1)
                      } else if (kForColor == 1) {
