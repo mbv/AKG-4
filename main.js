@@ -12,6 +12,7 @@ var device;
 var mesh;
 var meshes = [];
 var mera;
+var axis;
 var cubeA = 10;
 document.addEventListener("DOMContentLoaded", init, false);
 function init() {
@@ -158,6 +159,11 @@ function init() {
 
     mera.Position = new HELPER.Vector3(10, 90, 0);
     mera.Target = new HELPER.Vector3(0, 0, 0);
+
+    axis = new SoftEngine.Axis();
+    axis.FirstPoint = new HELPER.Vector3(0, -cubeA, cubeA);
+    axis.SecondPoint = new HELPER.Vector3(-cubeA, cubeA, -cubeA);
+
     requestAnimationFrame(drawingLoop);
     drawingLoop();
 
@@ -173,18 +179,22 @@ function init() {
         mesh.Rotation.z = document.getElementById("rangeZ").value / 100;
         draw();
     });
+    document.getElementById("rangeMy").addEventListener("input", function (event) {
+        axis.angle = document.getElementById("rangeMy").value / 100;
+        draw();
+    });
 }
 function drawingLoop() {
     device.clear();
     //  mesh.Rotation.z += 0.01;
   // mesh.Rotation.y += 0.01;
    // mesh.Rotation.x += 0.01;
-    device.render(mera, meshes);
+    device.render(mera, meshes, axis);
     device.present();
     //requestAnimationFrame(drawingLoop);
 }
 function draw() {
     device.clear();
-    device.render(mera, meshes);
+    device.render(mera, meshes, axis);
     device.present();
 }
