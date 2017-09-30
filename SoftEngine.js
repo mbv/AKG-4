@@ -4,6 +4,9 @@ var SoftEngine;
     function Camera() {
       this.Position = HELPER.Vector3.Zero();
       this.Target = HELPER.Vector3.Zero();
+      this.Phi = 0.001;
+      this.Etha = 0.001;
+      this.Radius = 100;
     }
 
     return Camera;
@@ -49,6 +52,15 @@ var SoftEngine;
     };
     Device.prototype.present = function () {
       this.workingContext.putImageData(this.backbuffer, 0, 0);
+    };
+    Device.prototype.putInfo = function (camera) {
+      this.workingContext.font = "15px Arial";
+      this.workingContext.fillStyle = "red";
+      this.workingContext.fillText("Radius: " + camera.Radius,10,20);
+
+      this.workingContext.fillText("Phi: " + camera.Phi*180/Math.PI,10,40);
+
+      this.workingContext.fillText("Etha: " + camera.Etha*180/Math.PI,10,60);
     };
     Device.prototype.putPixel = function (x, y, z, color, forceDraw) {
       this.backbufferdata = this.backbuffer.data;
@@ -211,10 +223,18 @@ var SoftEngine;
       var projectionMatrix = HELPER.Matrix.PerspectiveFovLH(0.78, this.workingWidth / this.workingHeight, 1.0, 100.0);
       for (var index = 0; index < meshes.length; index++) {
         var cMesh = meshes[index];
+
+        var transformPointMatrix = HELPER.Matrix.RotationYawPitchRoll(cMesh.Rotation.y, cMesh.Rotation.x, cMesh.Rotation.z)
+          .multiply(HELPER.Matrix.Translation(axis.FirstPoint.x, axis.FirstPoint.y, axis.FirstPoint.z));
+
+
+        var firstPoint = HELPER.Vector3.TransformCoordinates(axis.FirstPoint, transformPointMatrix);
+        var secondPoint = HELPER.Vector3.TransformCoordinates(axis.SecondPoint, transformPointMatrix);
+
         var worldMatrix = HELPER.Matrix.RotationYawPitchRoll(cMesh.Rotation.y, cMesh.Rotation.x, cMesh.Rotation.z)
-          .multiply(HELPER.Matrix.Translation(axis.FirstPoint.x, axis.FirstPoint.y, axis.FirstPoint.z))
-          .multiply(HELPER.Matrix.RotationAxis(new HELPER.Vector3(axis.SecondPoint.x - axis.FirstPoint.x, axis.SecondPoint.y - axis.FirstPoint.y, axis.SecondPoint.z - axis.FirstPoint.z), axis.angle))
-          .multiply(HELPER.Matrix.Translation(-axis.FirstPoint.x, -axis.FirstPoint.y, -axis.FirstPoint.z))
+          .multiply(HELPER.Matrix.Translation(firstPoint.x, firstPoint.y, firstPoint.z))
+          .multiply(HELPER.Matrix.RotationAxis(new HELPER.Vector3(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z), axis.angle))
+          .multiply(HELPER.Matrix.Translation(-firstPoint.x, -firstPoint.y, -firstPoint.z))
           .multiply(HELPER.Matrix.Translation(cMesh.Position.x, cMesh.Position.y, cMesh.Position.z));
         var transformMatrix = worldMatrix.multiply(viewMatrix).multiply(projectionMatrix);
 
@@ -255,9 +275,11 @@ var SoftEngine;
           this.drawBline(pixelC, pixelD, colorRGBA);
           this.drawBline(pixelD, pixelA, colorRGBA);
         }
-        var pixelFirstPoint = this.project(axis.FirstPoint, transformMatrix1, camera);
-        var pixelSecondPoint = this.project(axis.SecondPoint, transformMatrix1, camera);
-        this.drawBline(pixelFirstPoint, pixelSecondPoint, new HELPER.Color4(1, 0, 0, 1));
+        
+
+        //var pixelFirstPoint = this.project(axis.FirstPoint, transformMatrix, camera);
+        //var pixelSecondPoint = this.project(axis.SecondPoint, transformMatrix, camera);
+        //this.drawBline(pixelFirstPoint, pixelSecondPoint, new HELPER.Color4(1, 0, 0, 1));
       }
     };
     return Device;
